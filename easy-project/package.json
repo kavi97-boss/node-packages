@@ -1,0 +1,20 @@
+{
+  "name": "easy-project",
+  "version": "1.0.4",
+  "description":"easy project package will make your full-stack project very easialy",
+  "main": "index.js",
+  "preferGlobal": true,
+  "bin": "./index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "commander": "^8.3.0",
+    "fs-extra": "^10.0.0",
+    "inquirer": "^8.2.0",
+    "prompts": "^2.4.2"
+  }
+}
