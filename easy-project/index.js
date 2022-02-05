@@ -155,14 +155,18 @@ program
                                 makeProject(frontend.angular, path_to_frontend, ()=>{
                                     process.chdir(path_to_frontend)
                                     jsonNameEdit(path.join(path_to_frontend, 'package.json'), `${project_name}-frontend`,()=>{
-                                        cmd('npm install -g @angular/cli', ()=>{
-                                            cmd('npm install', ()=>{
-                                                done_txt('Project requirements installed')
-                                                done_txt('NextJS project created successfully!')
+                                        angularNameEdit(path_to_frontend, 'angular.json', ()=>{
+                                            cmd('npm install -g @angular/cli', ()=>{
+                                                cmd('npm install', ()=>{
+                                                    done_txt('Project requirements installed')
+                                                    done_txt('NextJS project created successfully!')
+                                                })
+                                            },()=>{
+                                                deleteProject(project_name, current_path)
                                             })
-                                        },()=>{
+                                        }, ()=>{
                                             deleteProject(project_name, current_path)
-                                        })
+                                        })                                        
                                     },()=>{
                                         deleteProject(project_name, current_path)
                                     })

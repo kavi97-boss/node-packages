@@ -94,3 +94,15 @@ export function jsonNameEdit(path, name, callBackDone=()=>{}){
     })
     callBackDone()
 }
+
+export function angularNameEdit(path, name, callBackDone=()=>{}){
+    let raw_file = fs.readFileSync(path)
+    let packages_file = JSON.parse(raw_file)
+    packages_file.defaultProject = name
+    fs.writeFileSync(path, JSON.stringify(packages_file), (err)=>{
+        if(err){
+            err_txt(err)
+        }
+    })
+    callBackDone()
+}
