@@ -62,5 +62,3 @@ easy-project create project-name -f react -b node
 -   `-b flask` or `--backend flask` Flask server
 
 Thank you for using `easy-project` have fun !!!
-
-**_2.0.4 version fixed some bugs_**

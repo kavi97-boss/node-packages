@@ -1,20 +1,31 @@
 {
   "name": "easy-project",
+  "type": "module",
   "version": "1.0.4",
-  "description":"easy project package will make your full-stack project very easialy",
+  "description": "easy-project package will make your full-stack project very easialy",
+  "keywords": [
+    "kavi99",
+    "javascript",
+    "js",
+    "python",
+    "reactjs",
+    "angular",
+    "nextjs",
+    "nodejs",
+    "express",
+    "flask",
+    "cli"
+  ],
   "main": "index.js",
   "preferGlobal": true,
   "bin": "./index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "commander": "^8.3.0",
-    "fs-extra": "^10.0.0",
-    "inquirer": "^8.2.0",
-    "prompts": "^2.4.2"
+    "fs-extra": "^10.0.0"
   }
 }

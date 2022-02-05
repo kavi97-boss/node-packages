@@ -1,339 +1,193 @@
 #!/usr/bin/env node
 
-// let raw_file = fs.readFileSync(path.join(process.cwd(), 'package.json'))
-// let packages_file = JSON.parse(raw_file)
+import {cmd, createFolder, deleteProject, done_txt, err_txt, jsonNameEdit, makeProject, packageVersion, __dirname} from './funcs.js'
+import program from 'commander'
+import path from 'path'
+import fs from 'fs-extra'
 
-const program = require('commander')
-const {exec} = require('child_process')
 
-const fs = require('fs-extra')
-const path = require('path')
-
-const base_path = process.cwd()
 const from_path = __dirname
+const current_path = process.cwd()
+const VERSION = packageVersion()
+
+
+const frontend = {
+    react:path.join(from_path, 'templates', 'react'),
+    next:path.join(from_path, 'templates', 'next'),
+    angular:path.join(from_path, 'templates', 'angular')
+}
+const backend = {
+    express:path.join(from_path, 'templates', 'express'),
+    flask:path.join(from_path, 'templates', 'flask')
+}
 
 const BACKEND = 'backend'
 const FRONTEND = 'frontend'
 
-const LATENCY = 2000
-
-var is_frontend_project_created = false
-var is_backend_project_created = false
-
-// backend project paths
-const express_folder = path.join(path.join(from_path, 'template'), 'express')
-const flask_folder = path.join(path.join(from_path, 'template'), 'flask')
-
-// frontend project paths
-const react_folder = path.join(path.join(from_path, 'template'), 'react')
-const next_folder = path.join(path.join(from_path, 'template'), 'next')
-const angular_folder = path.join(path.join(from_path, 'template'), 'angular')
-
-const done_txt = (txt)=>{
-    console.log("\x1b[32m",`[ DONE]`,"\x1b[0m" ,`${txt}`)
-}
-const err_txt = (txt)=>{
-    return console.log("\x1b[31m",`[ERROR]`,"\x1b[0m" ,`${txt}`)
-}
-
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-async function cmd(cmnd){
-    await exec(cmnd,(err, stdout, stderr)=>{
-        if(err){
-            err_txt(`[ERROR] ${err}`)
-            return
-        }
-        if(stderr){
-            err_txt(`[STD-ERROR] ${stderr}`)
-            return
-        }
-        console.log(stdout)
-    })
-}
-
-
+// application details
 program
-    .version('1.0.0')
-    .description('easy-project is a tool for create easialy full web projects with basic templates')
+  .name('easy-project')
+  .description('Easy to create project with many templates')
+  .version(VERSION);
 
-
+// options
 program
-    .option('-f, --frontend <frontend>', 'set frontend framework or library list: react')
-    .option('-b, --backend <backend>', 'set backend framework or library list: node')
+    .option('-f, --frontend <frontend>', 'set frontend framework or library list: react, next, angular')
+    .option('-b, --backend <backend>', 'set backend framework or library list: express, flask')
 
-
+// application action
 program
     .command("create <project-name>")
     .description('create web base projects with basic template')
     .action((project_name)=>{
-        
-        let to_path = process.cwd()
-
         const options = program.opts()
 
-        const project_exist = fs.existsSync(path.join(to_path, project_name))
-        
+        const project_exist = fs.existsSync(path.join(current_path, project_name))
+
         if(project_exist){
-            return err_txt('Project name exist please choose another name')
+            err_txt('Project name exist please choose another name')
+            return process.exit()
         }
-        else{            
-            
-            // make project folder
-            fs.mkdir(path.join(to_path, project_name), (err)=>{
-                if(err){
-                    err_txt(err)
+        else{
+            const path_to_project = path.join(current_path, project_name)
+            // create project folder
+            createFolder(path_to_project, ()=>{
+                done_txt(`${project_name} created`)
+
+                makeProject(backend.flask, path_to_project)
+
+                // cd to project folder
+                process.chdir(path_to_project)
+
+                // if backend attribute exist
+                if(options.backend){
+                    const path_to_backend = path.join(path_to_project, BACKEND)
+
+                    // create backend folder
+                    createFolder(path_to_backend, ()=>{
+                        switch (options.backend){
+                            // create express project
+                            case('express'):{
+                                makeProject(backend.express, path_to_backend, ()=>{
+                                    process.chdir(path_to_backend)
+                                    jsonNameEdit(path.join(path_to_backend, 'package.json'), `${project_name}-backend`, ()=>{
+                                        cmd('npm install', ()=>{
+                                            done_txt('Project requirements installed')
+                                            done_txt('Express project created successfully!')
+                                        },()=>{
+                                            deleteProject(project_name, current_path)
+                                        })
+                                    }, ()=>{
+                                        deleteProject(project_name, current_path)
+                                    })
+                                },()=>{
+                                    deleteProject(project_name, current_path)
+                                })
+                                break
+                            }
+                            // create flask project
+                            case('flask'):{
+                                makeProject(backend.flask, path_to_backend, ()=>{
+                                    cmd('pip install flask flask-cors',()=>{
+                                        done_txt('Project requirements installed')
+                                        done_txt('Flask project created successfully!')
+                                    },()=>{
+                                        deleteProject(project_name, current_path)
+                                    })
+                                },()=>{
+                                    deleteProject(project_name, current_path)
+                                })
+                                break
+                            }
+                            default:{
+                                // cd to project folder
+                                deleteProject(project_name, current_path)  
+                                break                             
+                            }
+                        }
+                    })
+                }
+                if(options.frontend){
+                    const path_to_frontend = path.join(path_to_project, FRONTEND)
+
+                    createFolder(path_to_frontend, ()=>{
+                        switch (options.frontend){
+                            // create react project
+                            case('react'):{
+                                makeProject(frontend.react, path_to_frontend, ()=>{
+                                    process.chdir(path_to_frontend)
+                                    jsonNameEdit(path.join(path_to_frontend, 'package.json'), `${project_name}-frontend`,()=>{
+                                        cmd('npm install', ()=>{
+                                            done_txt('Project requirements installed')
+                                            done_txt('ReactJS project created successfully!')
+                                        },()=>{
+                                            deleteProject(project_name, current_path)
+                                        })
+                                    },()=>{
+                                        deleteProject(project_name, current_path)
+                                    })                                    
+                                },()=>{
+                                    deleteProject(project_name, current_path)
+                                })
+                                break
+                            }
+                            // create nextjs project
+                            case('next'):{
+                                makeProject(frontend.next, path_to_frontend, ()=>{
+                                    process.chdir(path_to_frontend)
+                                    jsonNameEdit(path.join(path_to_frontend, 'package.json'), `${project_name}-frontend`,()=>{
+                                        cmd('npm install', ()=>{
+                                            done_txt('Project requirements installed')
+                                            done_txt('NextJS project created successfully!')
+                                        },()=>{
+                                            deleteProject(project_name, current_path)
+                                        })
+                                    },()=>{
+                                        deleteProject(project_name, current_path)
+                                    })                                    
+                                },()=>{
+                                    deleteProject(project_name, current_path)
+                                })
+                                break
+                            }
+                            // create angular project
+                            case('angular'):{
+                                makeProject(frontend.angular, path_to_frontend, ()=>{
+                                    process.chdir(path_to_frontend)
+                                    jsonNameEdit(path.join(path_to_frontend, 'package.json'), `${project_name}-frontend`,()=>{
+                                        cmd('npm install -g @angular/cli', ()=>{
+                                            cmd('npm install', ()=>{
+                                                done_txt('Project requirements installed')
+                                                done_txt('NextJS project created successfully!')
+                                            })
+                                        },()=>{
+                                            deleteProject(project_name, current_path)
+                                        })
+                                    },()=>{
+                                        deleteProject(project_name, current_path)
+                                    })
+                                },()=>{
+                                    deleteProject(project_name, current_path)
+                                })
+                                break
+                            }
+                            // defaults
+                            default:{
+                                // cd to project folder
+                                deleteProject(project_name, current_path)  
+                                break                             
+                            }
+                        }
+                    })
                 }
                 else{
-                    done_txt(`Project ${project_name} Created`)
-
-                    // change directory to project
-                    process.chdir(path.join(process.cwd(), project_name))
-                    
-                    // create frontend project
-                    if(options.frontend){
-
-                        // create frontend folder
-                        fs.mkdir(path.join(process.cwd(), FRONTEND), (err)=>{
-                            if(err){
-                                err_txt(err)
-                            }
-                            else{
-                                const frontend_method = options.frontend
-
-                                // change directory to frontend
-                                const to_frontend = path.join(path.join(base_path, project_name), FRONTEND)
-                                process.chdir(to_frontend)
-
-                                switch(frontend_method){
-
-                                    // react project
-                                    case 'react':
-                                        // copy react folder to project frontend
-                                        fs.copy(react_folder, process.cwd(), (err)=>{
-                                            if(err){
-                                                err_txt(err)
-                                            }
-                                            else{
-                                                done_txt('Frontend React project created')
-                                                setTimeout(()=>{
-                                                    const frontend_json_path = path.join(path.join(path.join(base_path, project_name), FRONTEND), 'package.json')
-
-                                                    let f_raw_file = fs.readFileSync(frontend_json_path)
-                                                    let f_packages_file = JSON.parse(f_raw_file)
-                                                    f_packages_file.name = `${project_name}-frontend`
-                                                    
-                                                    fs.writeFileSync(frontend_json_path, JSON.stringify(f_packages_file), (err)=>{
-                                                        if(err){
-                                                            err_txt(err)
-                                                        }
-                                                    })
-                                                    process.chdir(to_frontend)
-                                                    cmd('npm install')
-
-                                                },LATENCY)
-                                            }
-                                        })
-                                        break
-                                    
-                                    case 'next':
-                                        // copy next folder to project frontend
-                                        fs.copy(next_folder, process.cwd(), (err)=>{
-                                            if(err){
-                                                err_txt(err)
-                                            }
-                                            else{
-                                                done_txt('Frontend NextJS project created')
-                                                setTimeout(()=>{
-                                                    const frontend_json_path = path.join(path.join(path.join(base_path, project_name), FRONTEND), 'package.json')
-
-                                                    let f_raw_file = fs.readFileSync(frontend_json_path)
-                                                    let f_packages_file = JSON.parse(f_raw_file)
-                                                    f_packages_file.name = `${project_name}-frontend`
-                                                    
-                                                    fs.writeFileSync(frontend_json_path, JSON.stringify(f_packages_file), (err)=>{
-                                                        if(err){
-                                                            err_txt(err)
-                                                        }
-                                                    })
-                                                    process.chdir(to_frontend)
-                                                    cmd('npm install')
-
-                                                },LATENCY)
-                                            }
-                                        })
-                                        break
-
-                                    case 'angular':
-                                        // copy angular folder to project frontend
-                                        fs.copy(angular_folder, process.cwd(), (err)=>{
-                                            if(err){
-                                                err_txt(err)
-                                            }
-                                            else{
-                                                done_txt('Frontend Angular project created')
-                                                setTimeout(()=>{
-                                                    const frontend_json_path = path.join(path.join(path.join(base_path, project_name), FRONTEND), 'package.json')
-
-                                                    let f_raw_file = fs.readFileSync(frontend_json_path)
-                                                    let f_packages_file = JSON.parse(f_raw_file)
-                                                    f_packages_file.name = `${project_name}-frontend`
-                                                    
-                                                    fs.writeFileSync(frontend_json_path, JSON.stringify(f_packages_file), (err)=>{
-                                                        if(err){
-                                                            err_txt(err)
-                                                        }
-                                                    })
-                                                    process.chdir(to_frontend)
-                                                    cmd('npm install')
-                                                    cmd('npm install -g @angular/cli')
-
-                                                },LATENCY)
-                                            }
-                                        })
-                                        break
-                                    
-                                    // frontend error
-                                    default:
-                                        err_txt('Not a valid library format')
-                                        process.chdir(path.join(base_path, project_name))
-                                        fs.rmdir(path.join(process.cwd(), FRONTEND), (err)=>{
-                                            if(err){
-                                                err_txt(err)
-                                            }
-                                            else{
-                                                process.chdir(base_path)
-                                                fs.rmdir(path.join(base_path, project_name), (err)=>{
-                                                    if(err){
-                                                        err_txt(err)
-                                                    }
-                                                    else{
-                                                        return done_txt(`Project ${project_name} removed`)
-                                                    }
-                                                })
-                                            }
-                                        })
-                                        break
-
-                                }
-                            }
-                        })
-                    }
-
-                    // create backend project
-                    if(options.backend){
-                        
-                        // create backend folder
-                        fs.mkdir(path.join(process.cwd(), BACKEND), (err)=>{
-                            if(err){
-                                err_txt(err)
-                            }
-                            else{
-                                const backend_method = options.backend
-
-                                // change directory to backend
-                                const to_backend = path.join(path.join(base_path, project_name), BACKEND)
-                                process.chdir(to_backend)
-
-                                switch(backend_method){
-
-                                    // express project
-                                    case 'express':
-                                        // copy node folder to project backend
-                                        fs.copy(express_folder, process.cwd(), (err)=>{
-                                            if(err){
-                                                err_txt(err)
-                                            }
-                                            else{
-                                                done_txt('Backend Express project created')
-                                                setTimeout(()=>{
-                                                    const backend_json_path = path.join(path.join(path.join(base_path, project_name), BACKEND), 'package.json')
-
-                                                    let b_raw_file = fs.readFileSync(backend_json_path)
-                                                    let b_packages_file = JSON.parse(b_raw_file)
-                                                    b_packages_file.name = `${project_name}-backend`
-
-                                                    fs.writeFileSync(backend_json_path, JSON.stringify(b_packages_file), (err)=>{
-                                                        if(err){
-                                                            err_txt(err)
-                                                        }
-                                                    })
-                                                    process.chdir(to_backend)
-                                                    cmd('npm install')
-
-                                                },LATENCY)
-                                            }
-                                        })
-                                        break
-                                    
-                                    // flask project
-                                    case 'flask':
-                                        // copy node folder to project backend
-                                        fs.copy(flask_folder, process.cwd(), (err)=>{
-                                            if(err){
-                                                err_txt(err)
-                                            }
-                                            else{
-                                                done_txt('Backend Flask project created')
-                                                setTimeout(()=>{
-                                                    cmd('pip install flask')
-                                                    cmd('pip install flask-cors')
-
-                                                },LATENCY)
-                                            }
-                                        })
-                                        break
-                                    
-                                    // backend error
-                                    default:
-                                        err_txt('Not a valid library format')
-                                        process.chdir(path.join(base_path, project_name))
-                                        fs.rmdir(path.join(process.cwd(), BACKEND), (err)=>{
-                                            if(err){
-                                                err_txt(err)
-                                            }
-                                            else{
-                                                process.chdir(base_path)
-                                                fs.rmdir(path.join(base_path, project_name), (err)=>{
-                                                    if(err){
-                                                        err_txt(err)
-                                                    }
-                                                    else{
-                                                        return done_txt(`Project ${project_name} removed`)
-                                                    }
-                                                })
-                                            }
-                                        })
-                                        break
-
-                                }
-                            }
-                        })
-                    }
-                    else{
-                        err_txt(`Command format is wrong. you need to add parameters for frontend or backend or both`)
-                        process.chdir(path.join(process.cwd(), '..'))
-                        fs.rmdir(path.join(process.cwd(), project_name), (err)=>{
-                            if(err){
-                                err_txt(err)
-                            }
-                            else{
-                                done_txt(`Project ${project_name} removed`)
-                            }
-                        })
-                    }
-                    if(is_backend_project_created){
-                        console.log('backend created')
-                    }
-                    if(is_frontend_project_created){
-                        console.log('frontend created')
-                    }
+                    // if there is no any -f or -b attribute delete project folder
+                    process.chdir(current_path)
+                    deleteProject(project_name, current_path)                  
                 }
             })
-            
         }
     })
+
 
 program.parse(process.argv)
